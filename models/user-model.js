@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../database");
+const sequelize = require("../config/database");
 const bcrypt = require("bcrypt");
 //建立使用者和管理者
 const User = sequelize.define(
@@ -34,6 +34,11 @@ const User = sequelize.define(
     },
   },
   {
+    indexes: [
+      {
+        fields: ["email", "username"],
+      },
+    ],
     hooks: {
       //在創建密碼前都先透過此middleware去hash 密碼
       beforeCreate: async (user, options) => {

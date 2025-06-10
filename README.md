@@ -13,8 +13,6 @@
 - [API 路由](#api-路由)
 - [授權與認證](#授權與認證)
 - [測試](#測試)
-- [貢獻](#貢獻)
-- [授權](#授權)
 
 ---
 
@@ -49,6 +47,7 @@ PORT = 你的port
 HOST = "預設是localhost"
 PRIVATE_KEY_PATH=./keys/private.key  //皆為預設值
 PUBLIC_KEY_PATH=./keys/public.key    //皆為預設值
+NODE_ENV=test or development //可查閱config內的database
 ```
 
 ## 使用說明
@@ -76,11 +75,13 @@ nodemon sersver.js
 
 - 角色權限控管由 middleware authorizeRole 實作
 
+-資料庫版本 migration 控制
+
 ## 測試
 
-建議可以先用 Postman 測試 API，需先登入取得 cookie。
-後續可用 EJS 測試
-若要跨域`cors` 請設定 並將:
+手動 Postman 測試 API，需先登入取得 cookie。
+自動測試 jest / supertest 記得先將`.env`內的 NODE_ENV 更換在做測試每個 API request
+若要跨域`cors` 請設定並將:
 
 ```js
 res.cookie("token", token, {

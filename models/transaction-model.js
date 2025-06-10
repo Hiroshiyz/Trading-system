@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../database");
+const sequelize = require("../config/database");
 
 const Transaction = sequelize.define(
   "transaction", //紀錄每個買賣的交易!
@@ -28,6 +28,14 @@ const Transaction = sequelize.define(
   },
   {
     timestamps: true,
+    indexes: [
+      {
+        fields: ["UserId"],
+      },
+      {
+        fields: ["ProductId"],
+      },
+    ],
   }
 );
 module.exports = Transaction;

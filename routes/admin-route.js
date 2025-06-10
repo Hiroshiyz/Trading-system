@@ -6,7 +6,7 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get("/test", (req, res) => {
+router.get("/dashboard", (req, res) => {
   return res.json({ user: req.user });
 });
 module.exports = router;
