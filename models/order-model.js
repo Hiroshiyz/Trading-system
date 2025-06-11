@@ -9,7 +9,7 @@ const Order = sequelize.define(
     price: { type: DataTypes.FLOAT, allowNull: false },
     quantity: { type: DataTypes.FLOAT, allowNull: false },
     status: {
-      type: DataTypes.ENUM("pending", "filled", "cancelled"), //下單狀態
+      type: DataTypes.ENUM("pending", "filled"), //下單狀態
       defaultValue: 0,
     },
   },

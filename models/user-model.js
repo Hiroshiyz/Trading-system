@@ -36,7 +36,7 @@ const User = sequelize.define(
   {
     indexes: [
       {
-        fields: ["email", "username"],
+        fields: ["email"],
       },
     ],
     hooks: {

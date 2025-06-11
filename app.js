@@ -4,7 +4,6 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const passport = require("passport");
 require("./config/passport")(passport);
-
 const { authRoute, userRoute, adminRoute } = require("./routes");
 const authorize = require("./middleware/authorize");
 
@@ -18,18 +17,26 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // routes
-app.use("/api/auth", authRoute);
+app.use("/auth", authRoute);
 app.use(
-  "/api/admin",
+  "/admin",
   passport.authenticate("jwt", { session: false }),
   authorize(["admin"]),
   adminRoute
 );
 app.use(
-  "/api/user",
+  "/user",
   passport.authenticate("jwt", { session: false }),
-  authorize(["user", "admin"]),
+  authorize(["user"]),
   userRoute
 );
-
+//查看目前所有幣種
+app.get("/products", async (req, res) => {
+  try {
+    let allProducts = await Product.findAll({});
+    return res.json(allProducts);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 module.exports = app;

@@ -11,9 +11,6 @@ router.use((req, res, next) => {
   console.log("auth api 正在被使用");
   next();
 });
-router.get("/test", (req, res) => {
-  return res.send("測試");
-});
 //註冊
 router.post("/register", async (req, res) => {
   //利用joi 驗證格式 並且傳遞錯誤訊息
@@ -24,7 +21,7 @@ router.post("/register", async (req, res) => {
     //先判定是否被註冊過
     let foundUser = await User.findOne({ where: { email } });
     if (foundUser) {
-      return res.status(409).send("使用者已存在");
+      return res.status(409).json({ message: "使用者已存在" });
     }
     //建立新用戶
     let newUser = await User.create({
@@ -48,7 +45,7 @@ router.post("/login", async (req, res) => {
     let { email, password } = req.body;
     let foundUser = await User.findOne({ where: { email } });
     if (!foundUser) {
-      return res.status(400).send("並未找到此使用者");
+      return res.status(400).json({ message: "並未找到此使用者" });
     }
     //驗證帳號密碼是否正確
     //並製作token
@@ -72,15 +69,15 @@ router.post("/login", async (req, res) => {
       //base64
       return res.json({ message: "成功登入", token, foundUser });
     } else {
-      return res.status(403).send("密碼錯誤");
+      return res.status(403).json({ message: "密碼錯誤" });
     }
   } catch (error) {
-    return res.status(500).send(error.message);
+    return res.status(500).json({ error });
   }
 });
 //登出
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
-  return res.send("已經登出");
+  return res.json({ message: "已經登出" });
 });
 module.exports = router;

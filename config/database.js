@@ -44,3 +44,6 @@ const sequelize = new Sequelize(
 );
 
 module.exports = sequelize;
+
+// 為了 sequelize-cli
+module.exports.config = config;

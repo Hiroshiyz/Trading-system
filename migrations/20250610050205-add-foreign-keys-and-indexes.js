@@ -15,7 +15,6 @@ module.exports = {
       onDelete: "CASCADE",
     });
     await queryInterface.addIndex("holdings", ["UserId"]);
-    await queryInterface.removeColumn("holdings", "symbol");
 
     await queryInterface.addColumn("holdings", "ProductId", {
       type: Sequelize.INTEGER,
@@ -89,7 +88,7 @@ module.exports = {
     await queryInterface.addIndex("transactions", ["OrderId"]);
 
     //user
-    await queryInterface.addIndex("users", ["email", "username"]);
+    await queryInterface.addIndex("users", ["email"]);
   },
 
   async down(queryInterface, Sequelize) {
@@ -100,11 +99,6 @@ module.exports = {
 
     await queryInterface.removeColumn("holdings", "UserId");
     await queryInterface.removeColumn("holdings", "ProductId");
-
-    await queryInterface.addColumn("holdings", "symbol", {
-      type: Sequelize.STRING, // 根據你原本的欄位型別，如果不是 STRING 要改
-      allowNull: false, // 根據實際需求調整
-    });
 
     // Orders
     await queryInterface.removeIndex("orders", ["userId"]);
@@ -119,6 +113,6 @@ module.exports = {
     await queryInterface.removeColumn("transactions", "ProductId");
 
     // Users
-    await queryInterface.removeIndex("users", ["email", "username"]);
+    await queryInterface.removeIndex("users", ["email"]);
   },
 };

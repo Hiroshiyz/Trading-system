@@ -6,9 +6,13 @@ const Product = sequelize.define(
   "products",
   {
     symbol: { type: DataTypes.STRING, allowNull: false }, // BTC/USDT
-    name: { type: DataTypes.STRING, allowNull: false },
-    price: { type: DataTypes.FLOAT, allowNull: false },
+    name: { type: DataTypes.STRING, allowNull: false, unique: true },
     isAvailable: { type: DataTypes.BOOLEAN, defaultValue: true },
+    thirdPartyId: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: false,
+    },
   },
   {
     indexes: [

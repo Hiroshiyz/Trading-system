@@ -25,6 +25,7 @@ module.exports = (passport) => {
           where: {
             id: jwt_payload.id,
           },
+          attributes: { exclude: ["password"] },
         });
         if (foundUser) {
           return done(null, foundUser); //req.user = foundUser

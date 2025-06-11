@@ -1,6 +1,6 @@
-# 模擬交易平台
+# 模擬交易平台 CoinHiro
 
-為了瞭解市面上交易所 App 是如何運作，並著手實作專案，此專案可用來模擬虛擬貨幣買賣交易，並提供簡易的Ｋ線圖
+CoinHiro 是為了瞭解市面上交易所 App 是如何運作，並著手實作專案，此專案可用來模擬虛擬貨幣買賣交易
 
 ---
 
@@ -10,23 +10,18 @@
 - [安裝](#安裝)
 - [環境變數設定](#環境變數設定)
 - [使用說明](#使用說明)
-- [API 路由](#api-路由)
+- [目前更新功能](#目前更新功能)
+- [尚未更新功能](#尚未更新功能)
 - [授權與認證](#授權與認證)
 - [測試](#測試)
+- [資料庫圖示](#資料庫)
+- [API 資源來源](#api-資源來源)
 
 ---
 
 ## 專案介紹
 
-此專案為 trading system，使用 Node.js + Express + Passport JWT 做身份驗證，搭配 PostgreSQL 作為資料庫，使用 sequelize (ORM) 創建 並用 migrations 紀錄版本。
-
-目前完成：
-
-- 使用者註冊、登入
-- JWT 產生與 Cookie 儲存 (HttpOnly) //為了防止 XSS 且使不易被 JS 讀取
-- Passport JWT 中介軟體驗證
-- 角色權限控管 (User / Admin)
-- 錯誤處理與基本驗證
+此專案為 trading system，使用 Node.js + Express 作後端框架 ， Passport JWT 做身份驗證，搭配 PostgreSQL 作為資料庫，使用 sequelize (ORM) 創建 並用 migrations 紀錄更新架構 ，使用第三方 coinGecko API 定時更新資料庫。
 
 ---
 
@@ -58,14 +53,25 @@ NODE_ENV=test or development //可查閱config內的database
 nodemon sersver.js
 ```
 
-## API 路由
+## 目前更新功能
 
-| 方法 | 路由             | 說明           | 權限       |
-| ---- | ---------------- | -------------- | ---------- |
-| POST | /auth/login      | 使用者登入     | 公開       |
-| POST | /auth/logout     | 使用者登出     | 登入用戶   |
-| GET  | /user/profile    | 取得使用者資料 | User/Admin |
-| GET  | /admin/dashboard | 管理員專用頁面 | Admin      |
+- 使用者註冊、登入
+- JWT 產生與 Cookie 儲存 (HttpOnly) //為了防止 XSS 且使不易被 JS 讀取
+- Passport JWT 中介軟體驗證
+- Joi 驗證格式
+- 角色權限控管 (User / Admin)
+- 錯誤處理與基本驗證
+- 後台 Admin 權限處理
+- 使用者建立訂單(市價下單)模擬同時更新交易紀錄，持倉數量
+- 第三方 API 抓取資料 Cron 定期更新資料庫
+
+## 尚未更新功能
+
+- 查看持倉數量
+- 歷史交易紀錄
+- 賣出訂單
+- 測試單元尚未完善
+- 錯誤處理尚未完善
 
 ## 授權與認證
 
@@ -75,13 +81,13 @@ nodemon sersver.js
 
 - 角色權限控管由 middleware authorizeRole 實作
 
--資料庫版本 migration 控制
-
 ## 測試
 
 手動 Postman 測試 API，需先登入取得 cookie。
 自動測試 jest / supertest 記得先將`.env`內的 NODE_ENV 更換在做測試每個 API request
-若要跨域`cors` 請設定並將:
+也可以直接 `npm run test ` 已用 corss-env 將 test 輸入 避免出錯
+
+若要跨域`cors`測試請更改設定並將:
 
 ```js
 res.cookie("token", token, {
@@ -91,3 +97,15 @@ res.cookie("token", token, {
   sameSite: "none",
 });
 ```
+
+## 資料庫
+
+![alt text](image.png)
+
+## API 資源來源
+
+本專案使用以下第三方 API：
+
+- [CoinGecko API](https://docs.coingecko.com/reference/introduction) - 提供虛擬貨幣詳細資料
+
+資料版權與使用條款請參考各官方文件。
