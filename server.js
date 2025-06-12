@@ -1,7 +1,7 @@
 require("dotenv").config();
 const sequelize = require("./config/database");
 const app = require("./app");
-
+const { checkPriceAlert } = require("./services/alertService");
 const PORT = process.env.PORT || 3000;
 
 (async () => {
@@ -19,3 +19,7 @@ const PORT = process.env.PORT || 3000;
     console.error("Unable to connect to database:", error);
   }
 })();
+
+setInterval(() => {
+  checkPriceAlert().catch(console.log);
+}, 60 * 1000);

@@ -30,10 +30,13 @@ const Transaction = sequelize.define(
     timestamps: true,
     indexes: [
       {
-        fields: ["UserId"],
+        fields: ["userId"],
       },
       {
-        fields: ["ProductId"],
+        fields: ["productId"],
+      },
+      {
+        fields: ["orderId"],
       },
     ],
   }

@@ -18,24 +18,29 @@ async function fetchProductsFromAPI() {
 }
 
 async function syncProducts() {
-  const APIProducts = await fetchProductsFromAPI();
+  try {
+    const APIProducts = await fetchProductsFromAPI();
 
-  for (let p of APIProducts) {
-    const symbol = `${p.symbol.ToUpperCase()}/USDT`; //讓他放BTC / USDT這樣
-    const name = p.name;
-    const thirdPartyId = p.ids;
+    const upserts = APIProducts.map((p) => {
+      const symbol = `${p.symbol.toUpperCase()}/USDT`;
+      const name = p.name;
+      const thirdPartyId = p.id;
 
-    await Product.upsert({
-      symbol,
-      name,
-      thirdPartyId,
-      isAvailable: true,
+      return Product.upsert({
+        symbol,
+        name,
+        thirdPartyId,
+        isAvailable: true,
+      });
     });
-    //判定主key存在此筆資料?or不存在 if存在則更新不存在及新增
-  }
-  console.log("Product 同步成功存取資料庫");
-}
 
+    await Promise.all(upserts);
+    console.log(" Product 同步成功存取資料庫");
+  } catch (error) {
+    console.error(" 同步失敗:", error.message);
+  }
+}
+// syncProducts();
 module.exports = {
   syncProducts,
 };

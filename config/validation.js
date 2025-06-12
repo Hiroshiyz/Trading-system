@@ -23,5 +23,28 @@ const LoginValidation = (data) => {
   });
   return schema.validate(data);
 };
+
+//order
+const orderValiadtion = (data) => {
+  const schema = Joi.object({
+    type: Joi.string().valid("buy", "sell").required(),
+    thirdPartyId: Joi.string().required(),
+    quantity: Joi.number().required(),
+  });
+  return schema.validate(data);
+};
+
+//alert
+const alertValiadtion = (data) => {
+  const schema = Joi.object({
+    productId: Joi.number().required(),
+    condition: Joi.string().valid("lte", "gte").required(),
+    targetPrice: Joi.number().required(),
+  });
+  return schema.validate(data);
+};
+
 module.exports.registerValidation = registerValidation;
 module.exports.LoginValidation = LoginValidation;
+module.exports.orderValiadtion = orderValiadtion;
+module.exports.alertValiadtion = alertValiadtion;

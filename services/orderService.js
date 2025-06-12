@@ -1,12 +1,12 @@
 const axios = require("axios");
 const sequelize = require("../config/database");
 const { Product, Transaction, Holding, Order } = require("../models");
-async function getRealTimePrice(thridPartyId) {
+async function getRealTimePrice(thirdPartyId) {
   //先獲取第三方API的資料
   const res = await axios.get(
     "https://api.coingecko.com/api/v3/coins/markets",
     {
-      params: { vs_currency: "usd", ids: thridPartyId },
+      params: { vs_currency: "usd", id: thirdPartyId },
     }
   );
   if (!res.data || res.data.length === 0) {
@@ -19,7 +19,7 @@ module.exports.createOrder = async (user, orderData) => {
   try {
     //先從資料庫抓取相對應的coin 拿取相對應的主key
     const product = await Product.findOne({
-      where: { thridPartyId: orderData.thridPartyId },
+      where: { thirdPartyId: orderData.thirdPartyId },
       transaction: t,
     });
 
@@ -27,16 +27,16 @@ module.exports.createOrder = async (user, orderData) => {
       throw new Error("找不到對應幣種產品");
     }
     //拿取及時價格
-    const realTimePrice = await getRealTimePrice(orderData.thridPartyId);
+    const realTimePrice = await getRealTimePrice(orderData.thirdPartyId);
     //建立訂單
     let order = await Order.create(
       {
-        UserId: user.id,
-        ProductId: product.id,
+        userId: user.id,
+        productId: product.id,
         type: orderData.type,
         quantity: orderData.quantity,
         price: realTimePrice,
-        status: "filled",
+        status: "fulfilled",
       },
       { transaction: t }
     );
@@ -44,8 +44,8 @@ module.exports.createOrder = async (user, orderData) => {
     let holding = await Holding.findOne(
       {
         where: {
-          UserId: user.id,
-          ProductId: product.id,
+          userId: user.id,
+          productId: product.id,
         },
       },
       { transaction: t }
@@ -55,14 +55,15 @@ module.exports.createOrder = async (user, orderData) => {
         //新增持倉
         holding = await Holding.create(
           {
-            UserId: user.id,
-            ProductId: product.id,
+            userId: user.id,
+            productId: product.id,
             quantity: orderData.quantity,
           },
           { transaction: t }
         );
       } else {
-        throw new Error("失敗:無法賣出並未持有");
+        //sell
+        throw new Error("失敗：無法賣出，並未持有該資產");
       }
     } else {
       //更新持倉數量
@@ -72,19 +73,24 @@ module.exports.createOrder = async (user, orderData) => {
           : holding.quantity - orderData.quantity;
 
       if (newQuantity < 0) {
-        throw new Error("持倉不足無法賣出");
+        throw new Error(
+          `持倉不足：目前數量 ${holding.quantity}，欲賣出 ${orderData.quantity}`
+        );
       }
 
       await holding.update({ quantity: newQuantity }, { transaction: t });
     }
     //建立交易紀錄
+    let total = realTimePrice * orderData.quantity;
     await Transaction.create(
       {
-        UserId: user.id,
-        ProductId: product.id,
+        userId: user.id,
+        productId: product.id,
         quantity: orderData.quantity,
         price: realTimePrice,
         type: orderData.type,
+        total: total,
+        orderId: order.id,
       },
       { transaction: t }
     );

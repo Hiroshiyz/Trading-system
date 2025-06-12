@@ -1,7 +1,8 @@
+/* eslint-env jest */
+
 const request = require("supertest");
 const app = require("../app");
 const sequelize = require("../config/database");
-
 const User = require("../models").User;
 //初始化
 beforeAll(async () => {

@@ -15,8 +15,11 @@ router.get("/dashboard", (req, res) => {
 //用戶列表查看
 router.get("/userList", async (req, res) => {
   try {
-    let allUser = await User.findAll({ where: { role: "user" } });
-    return res.json(allUser);
+    let allUser = await User.findAll({
+      where: { role: "user" },
+      attributes: { exclude: ["password"] }, // exclude放 attributes 裡面，且 password 要用key
+    });
+    return res.json({ allUser });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -30,21 +33,12 @@ router.get("/userList/:id", async (req, res) => {
       attributes: { exclude: ["password"] },
       include: { model: Transaction },
     });
-    return res.json(foundUser);
+    return res.json({ foundUser });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 });
 
-//手動測試
-router.post("/sync-products", async (req, res) => {
-  try {
-    await productService.syncProducts();
-    res.json({ message: "同步完成" });
-  } catch (error) {
-    res.status(500).json({ message: "同步失敗", error: error.message });
-  }
-});
 //顯示幣種狀態
 router.patch("/products/:id/visibility", async (req, res) => {
   try {

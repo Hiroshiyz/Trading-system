@@ -9,14 +9,14 @@ const Holding = sequelize.define(
   {
     indexes: [
       {
-        fields: ["UserId"],
+        fields: ["userId"],
       },
       {
-        fields: ["ProductId"],
+        fields: ["productId"],
       },
       {
         unique: true,
-        fields: ["UserId", "ProductId"], // 避免同一人持有同一檔股票多筆記錄
+        fields: ["userId", "productId"], // 避免同一人持有同一檔股票多筆記錄
       },
     ],
   }
