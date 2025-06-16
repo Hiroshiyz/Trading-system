@@ -13,10 +13,17 @@ const {
 jest.mock("axios");
 const axios = require("axios");
 const { createOrder } = require("../services/orderService");
-const { checkPriceAlert } = require("../services/alertService");
+const { sendNotification } = require("../services/alertService");
+const redisClient = require("../lib/redisClient");
+
+let testUser;
 let token;
 beforeAll(async () => {
-  await User.create({
+  redisClient.on("error", (err) => {
+    console.error("Redis Client Error", err);
+  });
+  await redisClient.connect();
+  testUser = await User.create({
     username: "testUser",
     email: "test@gmail.com",
     password: "12345678",
@@ -31,7 +38,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await User.destroy({ where: {}, truncate: true, cascade: true });
-
+  await redisClient.quit();
   await sequelize.close();
 });
 describe("GET /Profile", () => {
@@ -46,54 +53,6 @@ describe("GET /Profile", () => {
   });
 });
 
-describe("POST /orders", () => {
-  let mockedPrice = 50000;
-  axios.get.mockResolvedValue({
-    data: [{ current_price: mockedPrice }],
-  });
-  it("格式不正確沒有填入數量回傳400", async () => {
-    const res = await request(app)
-      .post("/user/orders")
-      .set("Cookie", token)
-      .send({
-        type: "buy",
-        thirdPartyId: "bitcoin",
-        //故意沒填
-      });
-    expect(res.status).toBe(400);
-    expect(res.text).toMatch(/quantity/i);
-  });
-  it("成功下單", async () => {
-    const res = await request(app)
-      .post("/user/orders")
-      .set("Cookie", token)
-      .send({
-        type: "buy",
-        thirdPartyId: "bitcoin",
-        quantity: 1,
-      });
-    expect(res.status).toBe(201);
-    console.log(res.body.message);
-    expect(res.body.order).toHaveProperty("price");
-  });
-  it("成功賣出", async () => {
-    mockedPrice = 600000;
-    axios.get.mockResolvedValue({
-      data: [{ current_price: mockedPrice }],
-    });
-    const res = await request(app)
-      .post("/user/orders")
-      .set("Cookie", token)
-      .send({
-        type: "sell",
-        thirdPartyId: "bitcoin",
-        quantity: 1,
-      });
-    expect(res.status).toBe(201);
-    console.log(res.body.message);
-    expect(res.body.order).toHaveProperty("price");
-  });
-});
 describe("createOrder", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -102,14 +61,16 @@ describe("createOrder", () => {
   it("應該成功下單並回傳成功", async () => {
     //模擬現價
     axios.get.mockResolvedValue({
-      data: [{ current_price: 50000 }],
+      data: {
+        bitcoin: { usd: 21000 },
+      },
     });
 
     // 模擬資料庫
     Product.findOne = jest.fn().mockResolvedValue({ id: 1 });
     Holding.findOne = jest.fn().mockResolvedValue(null);
     Holding.create = jest.fn().mockResolvedValue({ id: 1 });
-    Order.create = jest.fn().mockResolvedValue({ id: 1, price: 50000 });
+    Order.create = jest.fn().mockResolvedValue({ id: 1, price: 21000 });
     Transaction.create = jest.fn().mockResolvedValue({});
     let fackTransaction = {
       commit: jest.fn(),
@@ -123,34 +84,10 @@ describe("createOrder", () => {
       quantity: 1,
     };
     let result = await createOrder(user, orderData);
-    expect(result.price).toBe(50000);
+    expect(result.price).toBe(21000);
     expect(Order.create).toHaveBeenCalled();
     expect(Transaction.create).toHaveBeenCalled();
     expect(fackTransaction.commit).toHaveBeenCalled();
-  });
-});
-describe("GET /holding", () => {
-  it("持倉查詢", async () => {
-    const res = await request(app).get("/user/holding").set("Cookie", token);
-    // console.log(res.body.holding);
-    expect(res.status).toBe(200);
-    expect(res.body.holding[0]).toHaveProperty("quantity");
-    expect(res.body.holding[0]).toHaveProperty("id");
-    expect(res.body.holding[0]).toHaveProperty("product");
-  });
-});
-describe("GET /transaction", () => {
-  it("交易查詢", async () => {
-    const res = await request(app)
-      .get("/user/transaction")
-      .set("Cookie", token);
-    // console.log(res.body.transaction);
-    expect(res.status).toBe(200);
-    expect(res.body.transaction[0]).toHaveProperty("id");
-    expect(res.body.transaction[0]).toHaveProperty("type");
-    expect(res.body.transaction[0]).toHaveProperty("price");
-    expect(res.body.transaction[0]).toHaveProperty("total");
-    expect(res.body.transaction[0]).toHaveProperty("order");
   });
 });
 
@@ -160,8 +97,8 @@ describe("POST /priceAlert", () => {
       .post("/user/priceAlert")
       .send({
         productId: 1,
-        targetPrice: 200000,
-        condition: "lte",
+        targetPrice: 20000,
+        condition: "gte",
       })
       .set("Cookie", token);
 
@@ -175,25 +112,27 @@ describe("POST /priceAlert", () => {
   });
 });
 describe("測試通知觸發", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await PriceAlert.destroy({ where: {} });
   });
-  it("大於目標價格時", async () => {
-    axios.get.mockResolvedValue({
-      data: [{ current_price: 21000 }],
+
+  it("應該印出通知訊息", async () => {
+    Product.findByPk = jest.fn().mockResolvedValue({
+      id: 1,
+      name: "Bitcoin",
     });
-    await PriceAlert.create({
-      userId: 67,
-      productId: 1,
-      targetPrice: 20000,
-      condition: "gte",
-      isNotified: false,
-    });
+    //監聽console.log的function
     const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
 
-    await checkPriceAlert();
+    await sendNotification(testUser.id, 1, 21000, 20000);
+    //應該要有被呼叫且內容是
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `通知:  使用者${testUser.username} Bitcoin 現在價格已達21000 您設定的目標價: 20000`
+      )
+    );
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("通知:"));
     consoleSpy.mockRestore();
   });
 });

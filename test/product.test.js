@@ -9,10 +9,10 @@ describe("產品相關 API", () => {
   describe("GET /products", () => {
     it("應該回傳所有產品", async () => {
       const res = await request(app).get("/products");
-      console.log(res.body.allProducts);
+      console.log(res.body);
       expect(res.status).toBe(200);
-      expect(res.body.allProducts[0]).toHaveProperty("name");
-      expect(res.body.allProducts[0]).toHaveProperty("thirdPartyId");
+      expect(res.body.data[0]).toHaveProperty("name");
+      expect(res.body.data[0]).toHaveProperty("thirdPartyId");
     });
   });
 });

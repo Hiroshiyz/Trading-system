@@ -1,0 +1,18 @@
+"use strict";
+
+const { toDefaultValue } = require("sequelize/lib/utils");
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.addColumn("holdings", "averagePrice", {
+      type: Sequelize.FLOAT,
+      allowNull: false,
+      defaultValue: 0,
+    });
+  },
+
+  async down(queryInterface, Sequelize) {
+    await queryInterface.removeColumn("holdings", "averagePrice");
+  },
+};

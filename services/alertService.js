@@ -1,22 +1,7 @@
+const { alternatives } = require("joi");
 const { PriceAlert, Product, User } = require("../models");
-const axios = require("axios");
+const { getRealTimePrices } = require("./priceService");
 
-//模擬抓及時價格
-async function getRealTimePriceByProductId(productId) {
-  const product = await Product.findByPk(productId);
-  if (!product) throw new Error("找不到產品");
-  const res = await axios.get(
-    "https://api.coingecko.com/api/v3/coins/markets",
-    {
-      params: {
-        vs_currency: "usd",
-        id: product.thirdPartyId,
-      },
-    }
-  );
-  if (!res.data || res.data.length === 0) throw new Error("查無價格");
-  return res.data[0].current_price;
-}
 //模擬發送通知
 async function sendNotification(userId, productId, currentPrice, targetPrice) {
   let user = await User.findByPk(userId);
@@ -29,24 +14,31 @@ async function sendNotification(userId, productId, currentPrice, targetPrice) {
 }
 
 async function checkPriceAlert() {
-  let alerts = await PriceAlert.findAll({ where: { isNotified: false } });
-  if (alerts === 0) return;
+  console.log("checkPirceAlert開始執行");
+  let alerts = await PriceAlert.findAll({
+    where: { isNotified: false },
+    include: { model: Product },
+  });
 
-  let productIds = [...new Set(alerts.map((a) => a.productId))];
+  if (alerts.length === 0) return;
+  //避免有重複的
+  let thirdPartyIds = [...new Set(alerts.map((a) => a.product.thirdPartyId))];
   let prices = {};
+
   //即時更新資料
-  for (let id of productIds) {
+  for (let id of thirdPartyIds) {
     try {
-      prices[id] = await getRealTimePriceByProductId(id);
+      prices[id] = await getRealTimePrices(id);
     } catch (error) {
-      console.log(error + `抓取價格失敗, productId : ${id}`);
+      return console.log(error + `抓取價格失敗, productId : ${id}`);
     }
   }
+
   //將當前價格根據alert對應的productId放入
   for (let alert of alerts) {
-    let currentPrice = prices[alert.productId];
+    console.log(alert.product.thirdPartyId);
+    let currentPrice = prices[alert.product.thirdPartyId];
     if (!currentPrice) continue;
-
     let alertCondition = false;
     if (alert.condition === "lte" && currentPrice <= alert.targetPrice)
       alertCondition = true;
@@ -60,10 +52,11 @@ async function checkPriceAlert() {
         currentPrice,
         alert.targetPrice
       );
+
       alert.isNotified = true;
       await alert.save();
     }
   }
 }
 
-module.exports = { checkPriceAlert };
+module.exports = { checkPriceAlert, sendNotification };

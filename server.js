@@ -1,25 +1,52 @@
 require("dotenv").config();
 const sequelize = require("./config/database");
-const app = require("./app");
 const { checkPriceAlert } = require("./services/alertService");
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
+const redisClient = require("./lib/redisClient");
+const { createServer } = require("http");
+const { WebSocketServer } = require("ws");
+const app = require("./app");
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+const handlewss = require("./lib/websocket");
 
 (async () => {
   try {
-    await sequelize.authenticate();
-    console.log("Connected to PostgreSQL Database.");
+    //連接postgreSQL
+    await sequelize
+      .authenticate()
+      .then(() => {
+        console.log("Connected to PostgreSQL Database.");
+      })
+      .catch((e) => {
+        console.log(e);
+      });
 
-    app.listen(PORT, () => {
+    //連接Redis
+    await redisClient
+      .connect()
+      .then(() => {
+        console.log("Connect to Redis");
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+
+    //連接express server
+    handlewss(wss);
+    server.listen(PORT, () => {
       console.log(
+        "webSocket are running",
         `Server running at http://localhost:${PORT}`,
         `running on ${process.env.NODE_ENV} environment`
       );
     });
   } catch (error) {
-    console.error("Unable to connect to database:", error);
+    console.log("Unable to connect to database:", error);
   }
 })();
 
 setInterval(() => {
-  checkPriceAlert().catch(console.log);
-}, 60 * 1000);
+  //一分鐘確認一次
+  checkPriceAlert().catch(console.error);
+}, 40 * 1000);

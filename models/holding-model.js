@@ -5,7 +5,9 @@ const Holding = sequelize.define(
   "holding",
   {
     quantity: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+    averagePrice: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 }, // 新增欄位：平均買入價格
   },
+
   {
     indexes: [
       {

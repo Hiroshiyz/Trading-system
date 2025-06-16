@@ -1,23 +1,13 @@
 const axios = require("axios");
 const sequelize = require("../config/database");
 const { Product, Transaction, Holding, Order } = require("../models");
-async function getRealTimePrice(thirdPartyId) {
-  //先獲取第三方API的資料
-  const res = await axios.get(
-    "https://api.coingecko.com/api/v3/coins/markets",
-    {
-      params: { vs_currency: "usd", id: thirdPartyId },
-    }
-  );
-  if (!res.data || res.data.length === 0) {
-    throw new Error("查無即時價格");
-  }
-  return res.data[0].current_price;
-}
+const { getRealTimePrices } = require("./priceService");
+const { or } = require("sequelize");
 module.exports.createOrder = async (user, orderData) => {
   const t = await sequelize.transaction();
   try {
     //先從資料庫抓取相對應的coin 拿取相對應的主key
+
     const product = await Product.findOne({
       where: { thirdPartyId: orderData.thirdPartyId },
       transaction: t,
@@ -27,7 +17,8 @@ module.exports.createOrder = async (user, orderData) => {
       throw new Error("找不到對應幣種產品");
     }
     //拿取及時價格
-    const realTimePrice = await getRealTimePrice(orderData.thirdPartyId);
+    const realTimePrice = await getRealTimePrices(orderData.thirdPartyId);
+
     //建立訂單
     let order = await Order.create(
       {
@@ -50,6 +41,12 @@ module.exports.createOrder = async (user, orderData) => {
       },
       { transaction: t }
     );
+    //postman會把數字轉成字串 用Number轉回來
+    let orderQuantity = Number(orderData.quantity);
+
+    if (isNaN(orderQuantity) || orderQuantity < 0) {
+      throw new Error("訂單數量錯誤");
+    }
     if (!holding) {
       if (orderData.type === "buy") {
         //新增持倉
@@ -58,6 +55,7 @@ module.exports.createOrder = async (user, orderData) => {
             userId: user.id,
             productId: product.id,
             quantity: orderData.quantity,
+            averagePrice: realTimePrice, //此時的價格是平均成本
           },
           { transaction: t }
         );
@@ -66,19 +64,28 @@ module.exports.createOrder = async (user, orderData) => {
         throw new Error("失敗：無法賣出，並未持有該資產");
       }
     } else {
-      //更新持倉數量
-      let newQuantity =
-        orderData.type === "buy"
-          ? holding.quantity + orderData.quantity
-          : holding.quantity - orderData.quantity;
-
-      if (newQuantity < 0) {
-        throw new Error(
-          `持倉不足：目前數量 ${holding.quantity}，欲賣出 ${orderData.quantity}`
+      //更新持倉數量 更新持倉平均成本
+      if (orderData.type === "buy") {
+        let oldTotalCost = holding.quantity * holding.averagePrice; //舊的持有成本
+        let newQuantity = holding.quantity + orderQuantity; //新增持倉數量
+        let newCost = orderQuantity * realTimePrice; //新持有的成本
+        let newAverage = (newCost + oldTotalCost) / newQuantity; //總成本/總數量 = 平均購買成本
+        await holding.update(
+          { quantity: newQuantity, averagePrice: newAverage },
+          { transaction: t }
         );
-      }
+      } else {
+        //賣出只看盈虧 減掉數量即可
+        let newQuantity = holding.quantity - orderQuantity;
+        //看賣出是否符合就好
+        if (newQuantity < 0) {
+          throw new Error(
+            `持倉不足：目前數量 ${holding.quantity}，欲賣出 ${orderData.quantity}`
+          );
+        }
 
-      await holding.update({ quantity: newQuantity }, { transaction: t });
+        await holding.update({ quantity: newQuantity }, { transaction: t });
+      }
     }
     //建立交易紀錄
     let total = realTimePrice * orderData.quantity;

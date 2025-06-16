@@ -2,7 +2,7 @@ const cron = require("node-cron");
 
 const productService = require("../services/productService");
 
-cron.schedule("0 * * * *", async () => {
+cron.schedule("* * 1 * *", async () => {
   //分 時 日 月 星期
   console.log("同步幣種資料....");
   try {

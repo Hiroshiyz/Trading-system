@@ -9,7 +9,7 @@ async function fetchProductsFromAPI() {
       params: {
         vs_currency: "usd",
         order: "market_cap-desc",
-        per_page: 10, //前十大
+        per_page: 100, //前十大
         page: 1,
       },
     }
@@ -34,13 +34,12 @@ async function syncProducts() {
       });
     });
 
-    await Promise.all(upserts);
+    await Promise.all(upserts); //全部執行完畢才能完成動作
     console.log(" Product 同步成功存取資料庫");
   } catch (error) {
     console.error(" 同步失敗:", error.message);
   }
 }
-// syncProducts();
 module.exports = {
   syncProducts,
 };

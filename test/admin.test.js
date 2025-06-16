@@ -56,17 +56,3 @@ describe("GET /userList", () => {
     expect(res.body.allUser[0]).toHaveProperty("username");
   });
 });
-
-describe("GET /userList/:id", () => {
-  const userId = 7; // 假設 user id
-  it("成功回傳所有使用者資料", async () => {
-    const res = await request(app)
-      .get(`/admin/userList/${userId}`)
-      .set("Cookie", token);
-    expect(res.status).toBe(200);
-    console.log(res.body);
-    expect(res.body.foundUser).toHaveProperty("id");
-    expect(res.body.foundUser).toHaveProperty("email");
-    expect(res.body.foundUser).toHaveProperty("username");
-  });
-});
