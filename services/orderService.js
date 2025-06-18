@@ -1,8 +1,7 @@
-const axios = require("axios");
 const sequelize = require("../config/database");
 const { Product, Transaction, Holding, Order } = require("../models");
 const { getRealTimePrices } = require("./priceService");
-const { or } = require("sequelize");
+
 module.exports.createOrder = async (user, orderData) => {
   const t = await sequelize.transaction();
   try {

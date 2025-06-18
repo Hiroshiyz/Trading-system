@@ -56,18 +56,29 @@ router.post("/login", async (req, res) => {
         email: foundUser.email,
         role: foundUser.role,
       };
-      let token = jwt.sign(tokenObject, privateKey, {
+      let accessToken = jwt.sign(tokenObject, privateKey, {
+        algorithm: "RS256",
+        expiresIn: "15m",
+      });
+      let refreshToken = jwt.sign(tokenObject, privateKey, {
         algorithm: "RS256",
         expiresIn: "7d",
       });
-      res.cookie("token", token, {
+      res.cookie("token", accessToken, {
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 天
+        maxAge: 15 * 60 * 1000, // 1 天
         secure: false, // 本機開發用 HTTP 時設 false
         sameSite: "lax",
       });
+      res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/auth/refresh", // 限制只有 /auth/refresh 可發送這個 cookie
+      });
       //base64
-      return res.json({ message: "成功登入", token, foundUser });
+      return res.json({ message: "成功登入", foundUser });
     } else {
       return res.status(403).json({ message: "密碼錯誤" });
     }
@@ -79,5 +90,40 @@ router.post("/login", async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ message: "已經登出" });
+});
+
+//refresh token讓效期延長
+router.post("/refresh", async (req, res) => {
+  const refreshToken = req.cookies.refresh_token;
+  if (!refreshToken)
+    return res.status(401).json({ message: "No refresh token" });
+
+  try {
+    const payload = jwt.verify(refreshToken, publicKey, {
+      algorithms: ["RS256"],
+    });
+
+    const newAccessToken = jwt.sign(
+      { id: payload.id, email: payload.email, role: payload.role },
+      privateKey,
+      {
+        algorithm: "RS256",
+        expiresIn: "15m",
+      }
+    );
+    //重新建立token
+    res.cookie("token", newAccessToken, {
+      httpOnly: true,
+      maxAge: 15 * 60 * 1000,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    return res.json({ message: "Access token refreshed" });
+  } catch (err) {
+    return res
+      .status(403)
+      .json({ message: "Invalid or expired refresh token" });
+  }
 });
 module.exports = router;

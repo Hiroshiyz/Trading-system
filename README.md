@@ -45,6 +45,17 @@ PUBLIC_KEY_PATH=./keys/public.key    //皆為預設值
 NODE_ENV=test or development //可查閱config內的database
 ```
 
+建立`key` 資料夾:
+
+```bash
+【
+openssl genrsa -out private.key 2048
+openssl rsa -in private.key -pubout -out public.key
+
+```
+
+![alt text](image-1.png)
+
 ## 使用說明
 
 建議先安裝 `nodemon` 套件

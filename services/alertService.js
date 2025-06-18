@@ -1,4 +1,3 @@
-const { alternatives } = require("joi");
 const { PriceAlert, Product, User } = require("../models");
 const { getRealTimePrices } = require("./priceService");
 

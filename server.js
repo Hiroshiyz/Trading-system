@@ -13,24 +13,12 @@ const handlewss = require("./lib/websocket");
 (async () => {
   try {
     //連接postgreSQL
-    await sequelize
-      .authenticate()
-      .then(() => {
-        console.log("Connected to PostgreSQL Database.");
-      })
-      .catch((e) => {
-        console.log(e);
-      });
+    await sequelize.authenticate();
+    console.log("Connected to PostgreSQL Database.");
 
     //連接Redis
-    await redisClient
-      .connect()
-      .then(() => {
-        console.log("Connect to Redis");
-      })
-      .catch((e) => {
-        console.log(e);
-      });
+    await redisClient.connect();
+    console.log("Connect to Redis");
 
     //連接express server
     handlewss(wss);
