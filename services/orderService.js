@@ -17,7 +17,11 @@ module.exports.createOrder = async (user, orderData) => {
     }
     //拿取及時價格
     const realTimePrice = await getRealTimePrices(orderData.thirdPartyId);
-
+    if (orderData.limitPrice) {
+      if (orderData.type === "buy" && orderData.limitPrice < realTimePrice) {
+        throw new Error("買入限價尚未必須大於市價");
+      }
+    }
     //建立訂單
     let order = await Order.create(
       {

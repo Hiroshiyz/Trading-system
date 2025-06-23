@@ -17,6 +17,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+app.use((err, req, res, next) => {
+  console.log(err.stack);
+  return res.status(500).json({ error: "server Error" });
+});
 // passport initialize
 app.use(passport.initialize());
 
@@ -57,4 +61,5 @@ app.post("/sync-products", async (req, res) => {
 app.get(/(.*)/, (req, res) => {
   return res.status(404).json({ message: "你所找的頁面不存在" });
 });
+
 module.exports = app;
